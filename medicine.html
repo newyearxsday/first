@@ -1,404 +1,864 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>고양시 약국 검색 지도</title>
-    <!-- 구글 폰트 적용 (Noto Sans KR) -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #EBF5FB;
-            --primary-color: #3498DB;
-            --primary-hover: #2980B9;
-            --accent-color: #F1C40F;
-            --accent-hover: #F39C12;
-            --text-color: #2C3E50;
-            --border-color: #D6EAF8;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="고양시 약국을 지도에서 검색하고 확인할 수 있는 카카오맵 기반 웹앱" />
+  <title>고양시 약국 지도</title>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Noto Sans KR', sans-serif;
-        }
+  <style>
+    :root {
+      --sky-50: #f5fcff;
+      --sky-100: #e8f8ff;
+      --sky-200: #d5f1ff;
+      --sky-300: #aee2ff;
+      --sky-500: #69c5ee;
+      --sky-700: #2d8fb9;
+      --navy: #19354a;
+      --text: #24465d;
+      --muted: #7290a2;
+      --yellow: #ffd84d;
+      --yellow-hover: #f8c92b;
+      --white: #ffffff;
+      --line: rgba(56, 124, 157, 0.14);
+      --shadow: 0 18px 48px rgba(33, 104, 135, 0.15);
+    }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            color: var(--text-color);
-        }
+    * { box-sizing: border-box; }
 
-        #container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-        }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family:
+        Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui,
+        -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--sky-100);
+    }
 
-        /* 왼쪽 사이드바 디자인 */
-        #sidebar {
-            width: 380px;
-            height: 100%;
-            background-color: var(--bg-color);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
-            z-index: 2;
-        }
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 85% 8%, rgba(255, 255, 255, 0.82), transparent 28%),
+        linear-gradient(135deg, #edfaff 0%, #dff5ff 50%, #eefbff 100%);
+    }
 
-        .header {
-            padding: 24px 20px;
-            background-color: #ffffff;
-            border-bottom: 1px solid var(--border-color);
-        }
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
 
-        .header h1 {
-            font-size: 1.4rem;
-            color: var(--primary-color);
-            font-weight: 700;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+    .sidebar {
+      position: absolute;
+      z-index: 10;
+      left: 20px;
+      top: 20px;
+      bottom: 20px;
+      width: min(390px, calc(100vw - 40px));
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
 
-        .search-box {
-            display: flex;
-            gap: 8px;
-        }
+    .sidebar-header {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(232, 248, 255, 0.95), rgba(255, 255, 255, 0.94));
+    }
 
-        .search-box input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.95rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 8px;
+      color: var(--sky-700);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
 
-        .search-box input:focus {
-            border-color: var(--primary-color);
-        }
+    .eyebrow-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--yellow);
+      box-shadow: 0 0 0 5px rgba(255, 216, 77, 0.18);
+    }
 
-        .search-box button {
-            padding: 12px 20px;
-            background-color: var(--accent-color);
-            color: #333333;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
+    h1 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 27px;
+      line-height: 1.25;
+      letter-spacing: -0.04em;
+    }
 
-        .search-box button:hover {
-            background-color: var(--accent-hover);
-        }
+    .subtitle {
+      margin: 8px 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
 
-        .search-box button:active {
-            transform: scale(0.98);
-        }
+    .search-box {
+      display: flex;
+      gap: 8px;
+      padding: 7px;
+      border: 1px solid rgba(105, 197, 238, 0.27);
+      border-radius: 16px;
+      background: var(--white);
+      box-shadow: 0 10px 24px rgba(76, 152, 181, 0.09);
+    }
 
-        /* 검색 결과 목록 */
-        #placesList {
-            flex: 1;
-            overflow-y: auto;
-            list-style: none;
-            padding: 12px;
-        }
+    .search-box:focus-within {
+      border-color: rgba(45, 143, 185, 0.45);
+      box-shadow:
+        0 10px 24px rgba(76, 152, 181, 0.10),
+        0 0 0 4px rgba(105, 197, 238, 0.12);
+    }
 
-        #placesList .item {
-            background: #ffffff;
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-        }
+    .search-icon {
+      width: 20px;
+      height: 20px;
+      margin: auto 2px auto 8px;
+      flex: 0 0 auto;
+      color: var(--sky-700);
+    }
 
-        #placesList .item:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.15);
-        }
+    #searchInput {
+      min-width: 0;
+      flex: 1;
+      height: 40px;
+      padding: 0 2px;
+      border: 0;
+      outline: 0;
+      color: var(--navy);
+      background: transparent;
+      font-size: 14px;
+    }
 
-        #placesList .item h5 {
-            font-size: 1.05rem;
-            color: var(--text-color);
-            margin-bottom: 6px;
-            font-weight: 700;
-        }
+    #searchInput::placeholder {
+      color: #9db2bf;
+    }
 
-        #placesList .item .address {
-            font-size: 0.85rem;
-            color: #7F8C8D;
-            margin-bottom: 4px;
-        }
+    .search-button {
+      height: 40px;
+      padding: 0 17px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--yellow);
+      color: #614f00;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+      box-shadow: 0 7px 15px rgba(232, 182, 0, 0.2);
+    }
 
-        #placesList .item .phone {
-            font-size: 0.85rem;
-            color: var(--primary-color);
-            font-weight: 500;
-        }
+    .search-button:hover {
+      background: var(--yellow-hover);
+      transform: translateY(-1px);
+    }
 
-        #pagination {
-            padding: 16px;
-            text-align: center;
-            background: #ffffff;
-            border-top: 1px solid var(--border-color);
-        }
+    .search-button:active {
+      transform: translateY(0);
+    }
 
-        #pagination a {
-            display: inline-block;
-            margin: 0 4px;
-            padding: 6px 12px;
-            border-radius: 6px;
-            color: var(--text-color);
-            text-decoration: none;
-            font-weight: 500;
-        }
+    .summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 15px;
+    }
 
-        #pagination a.on {
-            background-color: var(--primary-color);
-            color: #ffffff;
-        }
+    .result-count {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
 
-        /* 지도 영역 */
-        #map {
-            flex: 1;
-            height: 100%;
-        }
+    .reset-button {
+      border: 0;
+      background: transparent;
+      color: var(--sky-700);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 3px 0;
+    }
 
-        /* 커스텀 오버레이 (인포윈도우) 디자인 */
-        .custom-overlay {
-            position: relative;
-            bottom: 50px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            border-bottom: 2px solid #ccc;
-            float: left;
-            background: #fff;
-            padding: 12px 16px;
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
-        }
+    .reset-button:hover { text-decoration: underline; }
 
-        .custom-overlay .title {
-            font-weight: bold;
-            font-size: 0.95rem;
-            color: var(--text-color);
-            margin-bottom: 4px;
-        }
+    .status {
+      margin-top: 9px;
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
 
-        .custom-overlay .address {
-            font-size: 0.8rem;
-            color: #666;
-        }
-    </style>
+    .results {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+      background: rgba(248, 253, 255, 0.68);
+    }
+
+    .results::-webkit-scrollbar { width: 7px; }
+    .results::-webkit-scrollbar-thumb {
+      background: #cbeaf8;
+      border-radius: 999px;
+    }
+
+    .result-card {
+      position: relative;
+      display: block;
+      width: 100%;
+      margin-bottom: 9px;
+      padding: 15px 15px 14px;
+      border: 1px solid rgba(78, 155, 184, 0.11);
+      border-radius: 17px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 20px rgba(60, 131, 157, 0.06);
+      cursor: pointer;
+      transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+      text-align: left;
+    }
+
+    .result-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(105, 197, 238, 0.38);
+      box-shadow: 0 12px 28px rgba(60, 131, 157, 0.11);
+    }
+
+    .result-card.active {
+      border-color: rgba(255, 216, 77, 0.72);
+      box-shadow:
+        0 12px 28px rgba(60, 131, 157, 0.10),
+        0 0 0 3px rgba(255, 216, 77, 0.12);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .pharmacy-name {
+      min-width: 0;
+      color: var(--navy);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #fff8d7;
+      color: #7a6500;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .address {
+      color: #6f8a9a;
+      font-size: 11px;
+      line-height: 1.55;
+      word-break: keep-all;
+    }
+
+    .phone {
+      margin-top: 6px;
+      color: #7898aa;
+      font-size: 11px;
+    }
+
+    .empty-state {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .empty-icon {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 13px;
+      border-radius: 17px;
+      background: var(--sky-100);
+      color: var(--sky-700);
+      font-size: 25px;
+    }
+
+    .map-chip {
+      position: absolute;
+      z-index: 5;
+      right: 20px;
+      top: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 13px;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(33, 104, 135, 0.11);
+      color: var(--navy);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .map-chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--yellow);
+      box-shadow: 0 0 0 4px rgba(255, 216, 77, 0.18);
+    }
+
+    .loading {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      background: rgba(234, 249, 255, 0.38);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .loading.hidden { display: none; }
+
+    .loading-card {
+      width: min(300px, calc(100vw - 48px));
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.94);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      margin: 0 auto 12px;
+      border: 3px solid #d8f1fb;
+      border-top-color: var(--sky-700);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-title {
+      margin: 0;
+      color: var(--navy);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .loading-text {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 760px) {
+      .sidebar {
+        left: 12px;
+        right: 12px;
+        top: 12px;
+        bottom: auto;
+        width: auto;
+        height: min(520px, calc(100vh - 24px));
+        border-radius: 22px;
+      }
+
+      .map-chip {
+        right: 14px;
+        top: auto;
+        bottom: 14px;
+      }
+
+      .sidebar-header { padding: 22px 18px 17px; }
+      .results { padding: 10px; }
+      h1 { font-size: 23px; }
+    }
+  </style>
 </head>
-<body>
 
-<div id="container">
-    <!-- 왼쪽 사이드바 -->
-    <div id="sidebar">
-        <div class="header">
-            <h1>💊 고양시 약국 검색</h1>
-            <form onsubmit="searchPlaces(); return false;">
-                <div class="search-box">
-                    <input type="text" id="keyword" placeholder="약국 이름 또는 동 이름 입력" value="주엽동 약국">
-                    <button type="submit">검색</button>
-                </div>
-            </form>
-        </div>
-        
-        <ul id="placesList"></ul>
-        <div id="pagination"></div>
+<body>
+  <div class="app">
+    <div id="map" aria-label="고양시 약국 지도"></div>
+
+    <div class="map-chip">
+      <span class="map-chip-dot"></span>
+      고양시 약국 찾기
     </div>
 
-    <!-- 지도 영역 -->
-    <div id="map"></div>
-</div>
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          GOYANG · PHARMACY MAP
+        </div>
 
-<!-- 카카오맵 API (키 적용 및 services 라이브러리 포함) -->
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=53f0341bd38717151888f5e0a084a81d&libraries=services"></script>
-<script>
-    // 고양시 중심 좌표 (고양시청 근처)
-    var mapContainer = document.getElementById('map'),
-        mapOption = {
-            center: new kakao.maps.LatLng(37.6584, 126.8320),
-            level: 5
-        };
+        <h1>고양시 약국 지도</h1>
+        <p class="subtitle">
+          약국 이름이나 주소를 검색해 원하는 곳을 빠르게 찾아보세요.
+        </p>
 
-    var map = new kakao.maps.Map(mapContainer, mapOption);
-    var ps = new kakao.maps.services.Places();
-    var infowindow = new kakao.maps.InfoWindow({zIndex: 1});
-    var markers = [];
+        <form class="search-box" id="searchForm">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.8" stroke="currentColor" stroke-width="1.9"></circle>
+            <path d="M16.2 16.2L21 21" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path>
+          </svg>
 
-    // 처음 로드 시 자동 검색 실행
-    searchPlaces();
+          <input
+            id="searchInput"
+            type="search"
+            autocomplete="off"
+            placeholder="예: 중앙, 우리, 일산, 대화"
+            aria-label="약국 이름 또는 주소 검색"
+          />
 
-    // 키워드 검색 함수
-    function searchPlaces() {
-        var keyword = document.getElementById('keyword').value.trim();
+          <button class="search-button" type="submit">검색</button>
+        </form>
 
-        if (!keyword) {
-            alert('키워드를 입력해 주세요!');
-            return false;
-        }
+        <div class="summary-row">
+          <div class="result-count" id="resultCount">약국 정보를 불러오는 중...</div>
+          <button class="reset-button" id="resetButton" type="button">전체 보기</button>
+        </div>
 
-        // 고양시 지역 검색으로 범위를 제한하기 위해 입력값 정리
-        var searchKeyword = keyword;
-        if (!searchKeyword.includes('고양') && !searchKeyword.includes('일산')) {
-            searchKeyword = '고양시 ' + searchKeyword;
-        }
-        if (!searchKeyword.includes('약국')) {
-            searchKeyword += ' 약국';
-        }
+        <div class="status" id="statusText" aria-live="polite">
+          고양시 지역의 약국 정보를 불러오고 있습니다.
+        </div>
+      </header>
 
-        ps.keywordSearch(searchKeyword, placesSearchCB);
-    }
+      <section class="results" id="results" aria-live="polite"></section>
+    </aside>
 
-    // 장소검색이 완료됐을 때 호출되는 콜백함수
-    function placesSearchCB(data, status, pagination) {
-        if (status === kakao.maps.services.Status.OK) {
-            displayPlaces(data);
-            displayPagination(pagination);
-        } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-            alert('검색 결과가 존재하지 않습니다.');
-        } else if (status === kakao.maps.services.Status.ERROR) {
-            alert('검색 결과 중 오류가 발생했습니다.');
-        }
-    }
+    <div class="loading" id="loadingOverlay">
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <p class="loading-title">약국 정보를 불러오는 중이에요</p>
+        <p class="loading-text">고양시 여러 구역을 나누어 검색하고 있습니다.</p>
+      </div>
+    </div>
+  </div>
 
-    // 검색 결과 목록과 마커를 표출하는 함수
-    function displayPlaces(places) {
-        var listEl = document.getElementById('placesList'),
-            menuEl = document.getElementById('sidebar'),
-            fragment = document.createDocumentFragment(),
-            bounds = new kakao.maps.LatLngBounds();
+  <!-- Kakao Maps JavaScript API -->
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=53f0341bd38717151888f5e0a084a81d&libraries=services"></script>
 
-        removeAllChildNods(listEl);
-        removeMarker();
+  <script>
+    (() => {
+      "use strict";
 
-        for (var i = 0; i < places.length; i++) {
-            var placePosition = new kakao.maps.LatLng(places[i].y, places[i].x),
-                marker = addMarker(placePosition, i),
-                itemEl = getListItem(i, places[i]);
+      // 고양시 중심 좌표
+      const GOYANG_CENTER = { lat: 37.6584, lng: 126.8320 };
 
-            bounds.extend(placePosition);
+      // 고양시를 여러 사각형으로 나눠 검색해, 한 번의 검색에서 발생하는 최대 45개 제한의 영향을 줄입니다.
+      const SEARCH_BOUNDS = {
+        minLat: 37.6000,
+        maxLat: 37.7400,
+        minLng: 126.7200,
+        maxLng: 126.9000,
+        rows: 4,
+        cols: 4
+      };
 
-            (function(marker, title, address, place) {
-                // 마커 및 리스트 아이템 클릭 이벤트
-                kakao.maps.event.addListener(marker, 'click', function() {
-                    displayInfowindow(marker, title, address);
-                });
+      const mapContainer = document.getElementById("map");
+      const searchForm = document.getElementById("searchForm");
+      const searchInput = document.getElementById("searchInput");
+      const resetButton = document.getElementById("resetButton");
+      const resultCount = document.getElementById("resultCount");
+      const statusText = document.getElementById("statusText");
+      const resultsEl = document.getElementById("results");
+      const loadingOverlay = document.getElementById("loadingOverlay");
 
-                itemEl.onclick = function() {
-                    displayInfowindow(marker, title, address);
-                    map.panTo(new kakao.maps.LatLng(place.y, place.x));
-                };
-            })(marker, places[i].place_name, places[i].road_address_name || places[i].address_name, places[i]);
+      const map = new kakao.maps.Map(mapContainer, {
+        center: new kakao.maps.LatLng(GOYANG_CENTER.lat, GOYANG_CENTER.lng),
+        level: 8
+      });
 
-            fragment.appendChild(itemEl);
-        }
+      const places = new kakao.maps.services.Places();
+      const infoWindow = new kakao.maps.InfoWindow({ zIndex: 20 });
 
-        listEl.appendChild(fragment);
-        menuEl.scrollTop = 0;
-        map.setBounds(bounds);
-    }
+      let allPharmacies = [];
+      let visiblePharmacies = [];
+      let markers = [];
+      let activeId = null;
 
-    // 검색결과 항목을 Element로 반환하는 함수
-    function getListItem(index, places) {
-        var el = document.createElement('li');
-        var itemStr = '<div class="item">' +
-                      '  <h5>' + places.place_name + '</h5>';
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
 
-        if (places.road_address_name) {
-            itemStr += '  <div class="address">' + places.road_address_name + '</div>';
-        } else {
-            itemStr += '  <div class="address">' + places.address_name + '</div>';
-        }
+      function normalize(value) {
+        return String(value ?? "")
+          .toLowerCase()
+          .replace(/\s+/g, "")
+          .trim();
+      }
 
-        if (places.phone) {
-            itemStr += '  <div class="phone">📞 ' + places.phone + '</div>';
-        }
-        itemStr += '</div>';
+      function getAddress(place) {
+        return place.road_address_name || place.address_name || "주소 정보 없음";
+      }
 
-        el.innerHTML = itemStr;
-        return el;
-    }
+      function isInsideGoyang(place) {
+        const text = `${place.address_name || ""} ${place.road_address_name || ""}`;
+        return text.includes("고양시");
+      }
 
-    // 마커 생성 함수
-    function addMarker(position) {
-        var marker = new kakao.maps.Marker({
-            position: position
-        });
-        marker.setMap(map);
-        markers.push(marker);
-        return marker;
-    }
-
-    // 지도 위에 표시되고 있는 마커를 모두 제거합니다
-    function removeMarker() {
-        for (var i = 0; i < markers.length; i++) {
-            markers[i].setMap(null);
-        }
+      function clearMarkers() {
+        markers.forEach(marker => marker.setMap(null));
         markers = [];
-    }
+        infoWindow.close();
+      }
 
-    // 인포윈도우 표시 함수
-    function displayInfowindow(marker, title, address) {
-        var content = '<div class="custom-overlay">' +
-                      '  <div class="title">' + title + '</div>' +
-                      '  <div class="address">' + address + '</div>' +
-                      '</div>';
+      function makeMarker(place) {
+        const marker = new kakao.maps.Marker({
+          map,
+          position: new kakao.maps.LatLng(Number(place.y), Number(place.x))
+        });
 
-        infowindow.setContent(content);
-        infowindow.open(map, marker);
-    }
+        kakao.maps.event.addListener(marker, "click", () => {
+          focusPharmacy(place.id);
+        });
 
-    // 페이지네이션 표시
-    function displayPagination(pagination) {
-        var paginationEl = document.getElementById('pagination'),
-            fragment = document.createDocumentFragment(),
-            i;
+        return marker;
+      }
 
-        while (paginationEl.hasChildNodes()) {
-            paginationEl.removeChild(paginationEl.lastChild);
+      function renderMarkers(items) {
+        clearMarkers();
+
+        markers = items.map(makeMarker);
+      }
+
+      function renderList(items) {
+        if (!items.length) {
+          resultsEl.innerHTML = `
+            <div class="empty-state">
+              <div>
+                <div class="empty-icon">⌕</div>
+                <strong>검색 결과가 없어요.</strong><br />
+                다른 약국 이름이나 주소를 입력해 보세요.
+              </div>
+            </div>
+          `;
+          return;
         }
 
-        for (i = 1; i <= pagination.last; i++) {
-            var el = document.createElement('a');
-            el.href = "#";
-            el.innerHTML = i;
+        resultsEl.innerHTML = items.map(place => `
+          <button class="result-card ${activeId === place.id ? "active" : ""}"
+                  type="button"
+                  data-place-id="${escapeHtml(place.id)}">
+            <div class="card-top">
+              <div class="pharmacy-name">${escapeHtml(place.place_name)}</div>
+              <span class="badge">약국</span>
+            </div>
+            <div class="address">${escapeHtml(getAddress(place))}</div>
+            ${place.phone ? `<div class="phone">☎ ${escapeHtml(place.phone)}</div>` : ""}
+          </button>
+        `).join("");
 
-            if (i === pagination.current) {
-                el.className = 'on';
-            } else {
-                el.onclick = (function(i) {
-                    return function() {
-                        pagination.gotoPage(i);
-                    }
-                })(i);
+        resultsEl.querySelectorAll(".result-card").forEach(card => {
+          card.addEventListener("click", () => {
+            focusPharmacy(card.dataset.placeId);
+          });
+        });
+      }
+
+      function focusPharmacy(id) {
+        const place = visiblePharmacies.find(item => String(item.id) === String(id));
+        if (!place) return;
+
+        activeId = String(id);
+
+        const position = new kakao.maps.LatLng(Number(place.y), Number(place.x));
+        map.setCenter(position);
+        map.setLevel(4);
+
+        const markerIndex = visiblePharmacies.findIndex(item => String(item.id) === String(id));
+        const marker = markers[markerIndex];
+
+        if (marker) {
+          const content = `
+            <div style="
+              padding:11px 13px;
+              border-radius:12px;
+              background:#fff;
+              border:1px solid rgba(45,143,185,.12);
+              box-shadow:0 10px 25px rgba(33,104,135,.16);
+              color:#19354a;
+              font-size:12px;
+              min-width:170px;
+              line-height:1.45;
+            ">
+              <div style="font-weight:900;margin-bottom:3px;">
+                ${escapeHtml(place.place_name)}
+              </div>
+              <div style="color:#718b9b;">
+                ${escapeHtml(getAddress(place))}
+              </div>
+            </div>
+          `;
+          infoWindow.setContent(content);
+          infoWindow.open(map, marker);
+        }
+
+        resultsEl.querySelectorAll(".result-card").forEach(card => {
+          card.classList.toggle("active", String(card.dataset.placeId) === String(id));
+        });
+
+        const activeCard = resultsEl.querySelector(`.result-card[data-place-id="${CSS.escape(String(id))}"]`);
+        if (activeCard) {
+          activeCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+
+      function fitToItems(items) {
+        if (!items.length) return;
+
+        if (items.length === 1) {
+          map.setCenter(new kakao.maps.LatLng(Number(items[0].y), Number(items[0].x)));
+          map.setLevel(5);
+          return;
+        }
+
+        const bounds = new kakao.maps.LatLngBounds();
+        items.forEach(place => {
+          bounds.extend(new kakao.maps.LatLng(Number(place.y), Number(place.x)));
+        });
+        map.setBounds(bounds, 55, 55, 55, 55);
+      }
+
+      function updateView(keyword = "") {
+        const q = normalize(keyword);
+
+        visiblePharmacies = q
+          ? allPharmacies.filter(place => {
+              const name = normalize(place.place_name);
+              const address = normalize(getAddress(place));
+              return name.includes(q) || address.includes(q);
+            })
+          : [...allPharmacies];
+
+        activeId = null;
+        resultCount.textContent = `총 ${visiblePharmacies.length.toLocaleString("ko-KR")}곳`;
+
+        if (q) {
+          statusText.textContent =
+            visiblePharmacies.length
+              ? `'${keyword.trim()}'이(가) 포함된 약국을 찾았어요.`
+              : `'${keyword.trim()}'에 해당하는 약국이 없어요.`;
+        } else {
+          statusText.textContent = "고양시에서 찾은 약국을 표시하고 있습니다.";
+        }
+
+        renderList(visiblePharmacies);
+        renderMarkers(visiblePharmacies);
+        fitToItems(visiblePharmacies);
+      }
+
+      function mergePlaces(newPlaces) {
+        const existing = new Set(allPharmacies.map(place => String(place.id)));
+        newPlaces.forEach(place => {
+          if (!isInsideGoyang(place)) return;
+          const id = String(place.id);
+          if (!existing.has(id)) {
+            existing.add(id);
+            allPharmacies.push(place);
+          }
+        });
+
+        allPharmacies.sort((a, b) =>
+          String(a.place_name).localeCompare(String(b.place_name), "ko")
+        );
+      }
+
+      function makeGridBounds() {
+        const { minLat, maxLat, minLng, maxLng, rows, cols } = SEARCH_BOUNDS;
+        const latStep = (maxLat - minLat) / rows;
+        const lngStep = (maxLng - minLng) / cols;
+        const cells = [];
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const south = minLat + r * latStep;
+            const north = r === rows - 1 ? maxLat : south + latStep;
+            const west = minLng + c * lngStep;
+            const east = c === cols - 1 ? maxLng : west + lngStep;
+
+            cells.push(
+              new kakao.maps.LatLngBounds(
+                new kakao.maps.LatLng(south, west),
+                new kakao.maps.LatLng(north, east)
+              )
+            );
+          }
+        }
+
+        return cells;
+      }
+
+      function searchCell(bounds, page = 1) {
+        return new Promise(resolve => {
+          places.categorySearch(
+            "PM9",
+            (data, status, pagination) => {
+              if (status === kakao.maps.services.Status.OK) {
+                mergePlaces(data);
+
+                if (pagination && pagination.hasNextPage && page < 3) {
+                  pagination.nextPage();
+                  resolve(false);
+                  return;
+                }
+              }
+
+              resolve(true);
+            },
+            {
+              bounds,
+              size: 15,
+              page
             }
+          );
+        });
+      }
 
-            fragment.appendChild(el);
-        }
-        paginationEl.appendChild(fragment);
-    }
+      async function loadPharmacies() {
+        const cells = makeGridBounds();
+        let completed = 0;
 
-    // 자식 노드 제거 함수
-    function removeAllChildNods(el) {
-        while (el.hasChildNodes()) {
-            el.removeChild(el.lastChild);
+        // 검색 요청을 순차 처리해 브라우저에서 과도한 동시 요청이 발생하지 않도록 합니다.
+        for (const bounds of cells) {
+          await new Promise(resolve => {
+            let page = 1;
+
+            const searchPage = () => {
+              places.categorySearch(
+                "PM9",
+                (data, status, pagination) => {
+                  if (status === kakao.maps.services.Status.OK && Array.isArray(data)) {
+                    mergePlaces(data);
+                  }
+
+                  if (
+                    status === kakao.maps.services.Status.OK &&
+                    pagination &&
+                    pagination.hasNextPage &&
+                    page < 3
+                  ) {
+                    page += 1;
+                    pagination.nextPage();
+                    return;
+                  }
+
+                  completed += 1;
+                  statusText.textContent =
+                    `고양시 약국 정보를 불러오는 중… ${completed}/${cells.length} 구역`;
+                  resolve();
+                },
+                {
+                  bounds,
+                  size: 15,
+                  page
+                }
+              );
+            };
+
+            searchPage();
+          });
         }
-    }
-</script>
+
+        loadingOverlay.classList.add("hidden");
+        updateView(searchInput.value);
+        resultCount.textContent = `총 ${allPharmacies.length.toLocaleString("ko-KR")}곳`;
+        statusText.textContent = allPharmacies.length
+          ? "고양시에서 찾은 약국을 표시하고 있습니다."
+          : "약국 정보를 가져오지 못했습니다. 도메인 등록이나 API 키 설정을 확인해 주세요.";
+      }
+
+      searchForm.addEventListener("submit", event => {
+        event.preventDefault();
+        updateView(searchInput.value);
+      });
+
+      resetButton.addEventListener("click", () => {
+        searchInput.value = "";
+        updateView("");
+        searchInput.focus();
+      });
+
+      // SDK가 정상적으로 로드되었는지 확인합니다.
+      if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+        loadingOverlay.classList.add("hidden");
+        resultCount.textContent = "지도 API를 불러오지 못했어요.";
+        statusText.textContent = "카카오맵 JavaScript API 키와 허용 도메인 설정을 확인해 주세요.";
+        resultsEl.innerHTML = `
+          <div class="empty-state">
+            <div>
+              <div class="empty-icon">!</div>
+              카카오맵 API를 불러오지 못했습니다.<br />
+              Kakao Developers에서 JavaScript 키의<br />
+              허용 도메인을 등록했는지 확인해 주세요.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      loadPharmacies().catch(error => {
+        console.error(error);
+        loadingOverlay.classList.add("hidden");
+        resultCount.textContent = "오류가 발생했어요.";
+        statusText.textContent = "약국 정보를 불러오는 동안 문제가 발생했습니다.";
+      });
+    })();
+  </script>
 </body>
 </html>
